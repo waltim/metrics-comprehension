@@ -2,8 +2,8 @@ package application;
 
 import metrics.BuseWeimer;
 import metrics.Posnett;
-import util.IOEnum;
-import util.ReplaceHTMLCode;
+import utils.IOEnum;
+import utils.ReplaceHTMLCode;
 
 public class Program {
 

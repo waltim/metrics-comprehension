@@ -1,0 +1,22 @@
+
+    	private Runnable asyncSend(final String payload, final int sequence, final int correlation) {
+    -		return new Runnable() {
+    -
+    -			@Override
+    -			public void run() {
+    -				try {
+    -					in.send(new GenericMessage&lt;String&gt;(payload, stubHeaders(sequence, 2, correlation)));
+    -				}
+    -				catch (Exception e) {
+    -					e.printStackTrace();
+    -					exception = e;
+    -				}
+    +		return () -&gt; {
+    +			try {
+    +				in.send(new GenericMessage&lt;String&gt;(payload, stubHeaders(sequence, 2, correlation)));
+    +			}
+    +			catch (Exception e) {
+    +				exception = e;
+    			}
+    		};
+    

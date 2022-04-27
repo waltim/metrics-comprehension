@@ -1,0 +1,27 @@
+
+        // Invoke the pattern matching method on each directory.
+        @Override
+    -    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+    -        // Do not analyze the directory's children if blacklisted.
+    -        Path dirName = dir.getFileName();
+    -        if (dirName != null &amp;&amp; !entityOfInterest(dir)) {
+    +    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attributes) {
+    +        Path relative = Paths.get(base.relativize(dir.toUri()).getPath());
+    +        if (excludeMatcher.stream().anyMatch(pathMatcher -&gt; pathMatcher.matches(relative))) {
+                return FileVisitResult.SKIP_SUBTREE;
+    -        } else {
+    +        }
+    +        if (isParentIncluded.getOrDefault(dir.getParent(), false)
+    +            || includeMatcher.stream().anyMatch(pathMatcher -&gt; pathMatcher.matches(relative))) {
+    +            isParentIncluded.put(dir, true);
+                return FileVisitResult.CONTINUE;
+            }
+    +        return FileVisitResult.CONTINUE;
+    +    }
+    +
+    +    @Override
+    +    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+    +        isParentIncluded.put(dir, false);
+    +        return super.postVisitDirectory(dir, exc);
+        }
+    

@@ -1,0 +1,47 @@
+>
+    +
+        @Override
+    -    public CTLSchemaMetaInfoDto updateCTLSchemaMetaInfoScope(CTLSchemaMetaInfoDto ctlSchemaMetaInfo)
+    +    public CTLSchemaMetaInfoDto promoteScopeToTenant(String applicationId, String fqn)
+                throws KaaAdminServiceException {
+    -        this.checkAuthority(KaaAuthorityDto.values());
+    +        checkAuthority(KaaAuthorityDto.values());
+    +        final String tenantId = getTenantId();
+    +        checkApplicationId(applicationId);
+    +        checkCTLSchemaEditScope(tenantId, applicationId);
+    +
+            try {
+    -            checkCTLSchemaEditScope(ctlSchemaMetaInfo.getTenantId(), ctlSchemaMetaInfo.getApplicationId());
+    +            Set&lt;CTLSchemaDto&gt; dependencies = new HashSet&lt;&gt;();
+    +            List&lt;Integer&gt; versions = controlService.getAllCTLSchemaVersionsByFqnTenantIdAndApplicationId(fqn, tenantId, applicationId);
+    +
+    +            if(versions.isEmpty()) {
+    +                throw new KaaAdminServiceException("The requested item was not found!", ServiceErrorCode.ITEM_NOT_FOUND);
+    +            }
+    +
+    +            // meta info same for all versions
+    +            CTLSchemaMetaInfoDto ctlSchemaMetaInfo = controlService.getCTLSchemaByFqnVersionTenantIdAndApplicationId(fqn, versions.get(0), tenantId, applicationId).getMetaInfo();
+    +            ctlSchemaMetaInfo.setApplicationId(null); //promote to tenant
+    +
+    +            // get dep of all versions
+    +            for (Integer version : versions) {
+    +                CTLSchemaDto schema = controlService.getCTLSchemaByFqnVersionTenantIdAndApplicationId(fqn, version, tenantId, applicationId);
+    +                Set&lt;CTLSchemaDto&gt; schemaDependents = schema.getDependencySet();
+    +                dependencies.addAll(schemaDependents.stream()
+    +                        .filter(dep -&gt; dep.getMetaInfo().getScope() == CTLSchemaScopeDto.APPLICATION)
+    +                        .collect(Collectors.toList()));
+    +            }
+    +
+    +            // check if CT has dependencies with application scope
+    +            if (!dependencies.isEmpty()) {
+    +                String message = "Can't promote the common type version as it has references on following common type(s) with application scope: "
+    +                        + asText(dependencies);
+    +                throw new KaaAdminServiceException(message, ServiceErrorCode.CONFLICT);
+    +            }
+    +
+                return controlService.updateCTLSchemaMetaInfoScope(ctlSchemaMetaInfo);
+            } catch (Exception cause) {
+                throw Utils.handleException(cause);
+    @@ -3467,8 +3600,8 @@ public CtlSchemaFormDto getCTLSchemaFormByMetaInfoIdAndVer(String metaInfoId, in
+        }
+    

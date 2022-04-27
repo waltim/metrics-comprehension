@@ -1,0 +1,1 @@
+    	private Runnable asyncSend(final String payload, final int sequence, final int correlation) {      		return () -> {      			try {      				in.send(new GenericMessage<String>(payload, stubHeaders(sequence, 2, correlation)));      			}      			catch (Exception e) {      				exception = e;    			}    		};    }
